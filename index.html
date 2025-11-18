@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8" />
+<title>آزمایشگاه احتمال — نسخه پیشرفته</title>
+<style>
+    body {
+        background: radial-gradient(circle at top, #0f0f2d, #000);
+        color: #d9e6ff;
+        font-family: "IRANSans", sans-serif;
+        direction: rtl;
+        padding: 20px;
+        text-align: center;
+    }
+    h1 {
+        color: #8ab4ff;
+        text-shadow: 0 0 10px #345bff;
+    }
+    .card {
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(120,150,255,0.25);
+        border-radius: 20px;
+        padding: 20px;
+        margin: 25px auto;
+        width: 90%;
+        max-width: 600px;
+        box-shadow: 0 0 30px rgba(0,0,80,0.6);
+        backdrop-filter: blur(10px);
+    }
+    button {
+        background: #345bff;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 15px;
+        box-shadow: 0 0 15px #345bffaa;
+        transition: 0.2s;
+    }
+    button:hover { transform: scale(1.05); }
+    input {
+        background: rgba(255,255,255,0.15);
+        border: none;
+        padding: 8px;
+        border-radius: 8px;
+        color: #fff;
+        width: 80px;
+        margin: 5px;
+        text-align: center;
+    }
+
+    /* تاس سه‌بعدی */
+    .dice-container {
+        perspective: 700px;
+        margin: 20px auto;
+        height: 120px;
+    }
+    .dice {
+        width: 80px;
+        height: 80px;
+        position: relative;
+        margin: auto;
+        transform-style: preserve-3d;
+        transition: transform 1s ease-out;
+    }
+    .face {
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        color: white;
+        text-shadow: 0 0 10px #fff;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    .face:nth-child(1) { transform: rotateY(0deg) translateZ(40px); }
+    .face:nth-child(2) { transform: rotateY(90deg) translateZ(40px); }
+    .face:nth-child(3) { transform: rotateY(180deg) translateZ(40px); }
+    .face:nth-child(4) { transform: rotateY(-90deg) translateZ(40px); }
+    .face:nth-child(5) { transform: rotateX(90deg) translateZ(40px); }
+    .face:nth-child(6) { transform: rotateX(-90deg) translateZ(40px); }
+
+    canvas {
+        margin-top: 20px;
+        background: #0f1a3a;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 450px;
+    }
+</style>
+</head>
+<body>
+
+<h1>🔥 آزمایشگاه احتمال — نسخه پیشرفته</h1>
+
+<!-- سکه -->
+<div class="card">
+    <h2>🪙 سکه نئونی</h2>
+    تعداد آزمایش:
+    <input id="coinTrials" type="number" value="500">
+    <button onclick="runCoin()">اجرا</button>
+    <p id="coinResult"></p>
+    <canvas id="coinChart" height="200"></canvas>
+</div>
+
+<!-- تاس سه‌بعدی -->
+<div class="card">
+    <h2>🎲 تاس سه‌بعدی نئونی</h2>
+    تعداد آزمایش:
+    <input id="diceTrials" type="number" value="300">
+    <button onclick="roll3DDice()">اجرا</button>
+
+    <div class="dice-container">
+        <div class="dice" id="dice3D">
+            <div class="face">1</div>
+            <div class="face">2</div>
+            <div class="face">3</div>
+            <div class="face">4</div>
+            <div class="face">5</div>
+            <div class="face">6</div>
+        </div>
+    </div>
+
+    <p id="diceResult"></p>
+    <canvas id="diceChart" height="200"></canvas>
+</div>
+
+<!-- کیسه توپ‌ها -->
+<div class="card">
+    <h2>⚪ کیسه توپ‌ها (نئونی)</h2>
+    قرمز <input id="red" type="number" value="3">
+    آبی <input id="blue" type="number" value="3">
+    سبز <input id="green" type="number" value="3">
+    <br><br>
+    تعداد آزمایش:
+    <input id="bagTrials" type="number" value="400">
+    <button onclick="runBag()">اجرا</button>
+
+    <p id="bagResult"></p>
+    <canvas id="bagChart" height="200"></canvas>
+</div>
+
+<script>
+function drawChart(canvasId, labels, data) {
+    const c = document.getElementById(canvasId);
+    const ctx = c.getContext("2d");
+    ctx.clearRect(0,0,c.width,c.height);
+
+    const max = Math.max(...data);
+    const barW = 40;
+    const gap = 30;
+    let x = 30;
+
+    data.forEach((v,i)=>{
+        const h = (v/max)*150;
+
+        ctx.fillStyle = "#6e8bff";
+        ctx.shadowColor = "#6e8bff";
+        ctx.shadowBlur = 20;
+        ctx.fillRect(x,180-h,barW,h);
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#d9e6ff";
+        ctx.fillText(labels[i], x+10,195);
+        ctx.fillText(v, x+10,160-h);
+
+        x += barW + gap;
+    });
+}
+
+//------------------ سکه ------------------
+function runCoin(){
+    const t = parseInt(document.getElementById("coinTrials").value);
+    let heads = 0;
+    for(let i=0;i<t;i++) if(Math.random()<0.5) heads++;
+    const tails = t - heads;
+
+    document.getElementById("coinResult").innerText =
+        `شیر: ${heads} | خط: ${tails}`;
+
+    drawChart("coinChart", ["شیر","خط"], [heads,tails]);
+}
+
+//------------------ تاس 3D ------------------
+function roll3DDice(){
+    const dice = document.getElementById("dice3D");
+    const t = parseInt(document.getElementById("diceTrials").value);
+
+    const counts = [0,0,0,0,0,0];
+
+    for(let i=0;i<t;i++){
+        const r = Math.floor(Math.random()*6)+1;
+        counts[r-1]++;
+    }
+
+    // حرکت سه‌بعدی
+    const rx = Math.floor(Math.random()*360);
+    const ry = Math.floor(Math.random()*360);
+    dice.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+
+    document.getElementById("diceResult").innerText =
+        counts.map((v,i)=>`${i+1}: ${v}`).join(" | ");
+
+    drawChart("diceChart",
+              [1,2,3,4,5,6],
+              counts);
+}
+
+//------------------ کیسه توپ‌ها ------------------
+function runBag(){
+    const r = +document.getElementById("red").value;
+    const b = +document.getElementById("blue").value;
+    const g = +document.getElementById("green").value;
+    const t = +document.getElementById("bagTrials").value;
+
+    const bag = [];
+    for(let i=0;i<r;i++) bag.push("قرمز");
+    for(let i=0;i<b;i++) bag.push("آبی");
+    for(let i=0;i<g;i++) bag.push("سبز");
+
+    const count = {قرمز:0, آبی:0, سبز:0};
+
+    for(let i=0;i<t;i++){
+        const pick = bag[Math.random()*bag.length | 0];
+        count[pick]++;
+    }
+
+    document.getElementById("bagResult").innerText =
+        `قرمز: ${count.قرمز} | آبی: ${count.آبی} | سبز: ${count.سبز}`;
+
+    drawChart("bagChart",
+              ["قرمز","آبی","سبز"],
+              [count.قرمز, count.آبی, count.سبز]);
+}
+</script>
+
+</body>
+</html>
